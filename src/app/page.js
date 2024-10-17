@@ -5,6 +5,7 @@ export default function Home() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [message, setMessage] = useState("");
   const [chatResponse, setChatResponse] = useState("");
+  const [isLoading, setIsLoading] = useState(false); // Yüklenme durumu için ekledik
 
   const handleFileChange = (event) => {
     setSelectedFile(event.target.files[0]);
@@ -19,6 +20,10 @@ export default function Home() {
 
     const formData = new FormData();
     formData.append("mydoc", selectedFile);
+
+    setIsLoading(true); // Yüklenme başlıyor
+    setMessage("");
+    setChatResponse("");
 
     try {
       // Dosya yükleme isteği
@@ -48,14 +53,18 @@ export default function Home() {
               Authorization: `Bearer ${process.env.NEXT_PUBLIC_DOCANALYZER_API_KEY}`,
             },
             body: JSON.stringify({
-              prompt: "Makalaenin adı nedir?",
+              prompt: "Makalede bahsedilen ana konu nedir?",
+              model: "gpt-4o-mini",
+              page: true,
+              ocap: 1024,
+              lang: "Turkish",
             }),
           }
         );
 
         if (chatResponse.ok) {
           const chatData = await chatResponse.json();
-          console.log("gelen yanıt: ", chatData);
+          console.log("gelen yanıt:", chatData);
           setChatResponse(`Sohbet yanıtı: ${chatData.answer}`);
         } else {
           const chatError = await chatResponse.json();
@@ -67,12 +76,16 @@ export default function Home() {
       }
     } catch (error) {
       setMessage(`Bir hata oluştu: ${error.message}`);
+    } finally {
+      setIsLoading(false); // Yüklenme sona erdi
     }
   };
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
-      <h1 className="text-2xl font-bold mb-4">Dosya Yükleme Formu</h1>
+      <h1 className="text-2xl font-bold mb-4">
+        Article Parser <span className="text-sm font-thin">by emrecoban</span>
+      </h1>
       <form onSubmit={handleSubmit} className="bg-white p-6 rounded shadow-md">
         <input
           type="file"
@@ -81,11 +94,15 @@ export default function Home() {
         />
         <button
           type="submit"
-          className="w-full bg-blue-500 text-white font-bold py-2 px-4 rounded hover:bg-blue-600"
+          className={`w-full bg-blue-500 text-white font-bold py-2 px-4 rounded ${
+            isLoading ? "opacity-50 cursor-not-allowed" : "hover:bg-blue-600"
+          }`}
+          disabled={isLoading}
         >
-          Yükle
+          {isLoading ? "Yükleniyor..." : "Yükle"}
         </button>
       </form>
+      {isLoading && <p className="mt-4 text-gray-500">Lütfen bekleyin...</p>}
       {message && <p className="mt-4 text-red-500">{message}</p>}
       {chatResponse && <p className="mt-4 text-green-500">{chatResponse}</p>}
     </div>
