@@ -40,10 +40,44 @@ export default function Home() {
 
       if (response.ok) {
         const data = await response.json();
-        const docId = data.data[0]; // docid'yi alıyoruz
+        const docId = data.data[0]; // docId'yi alıyoruz
         setMessage(`Dosya başarıyla yüklendi. Chat Kodu: ${docId}`);
 
-        // Chat isteği gönderme
+        // Dokümanın analiz edilip edilmediğini kontrol et
+        let isAnalyzed = false;
+
+        while (!isAnalyzed) {
+          // 1 saniye bekle
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+
+          const checkResponse = await fetch(
+            `https://api.docanalyzer.ai/api/v1/doc/${docId}`,
+            {
+              method: "GET",
+              headers: {
+                Authorization: `Bearer ${process.env.NEXT_PUBLIC_DOCANALYZER_API_KEY}`,
+              },
+            }
+          );
+
+          if (checkResponse.ok) {
+            const checkData = await checkResponse.json();
+
+            console.log("checkResponse: ", checkData);
+
+            // Dokümanın analiz durumu kontrolü
+            if (checkData.data && checkData.data.ready) {
+              isAnalyzed = true; // Eğer 'ready' ise analiz tamamlanmış demektir
+            } else {
+              setMessage("Doküman henüz analiz edilmedi, lütfen bekleyin...");
+            }
+          } else {
+            setMessage("Doküman kontrol edilirken bir hata oluştu.");
+            break; // Eğer kontrol isteğinde bir hata varsa döngüyü kır
+          }
+        }
+
+        // Doküman analiz edildiyse chat isteği gönderme
         const chatResponse = await fetch(
           `https://api.docanalyzer.ai/api/v1/doc/${docId}/chat`,
           {
@@ -53,7 +87,8 @@ export default function Home() {
               Authorization: `Bearer ${process.env.NEXT_PUBLIC_DOCANALYZER_API_KEY}`,
             },
             body: JSON.stringify({
-              prompt: "Makalede bahsedilen ana konu nedir?",
+              prompt:
+                "Yazar bilgilerini getir. Abstract bilgisini getir. Keywords bilgisini getir. Bilgileri getirirken HTML etiketlerinden br ve b etiketlerini kullanabilirsin.",
               model: "gpt-4o-mini",
               page: true,
               ocap: 1024,
@@ -65,7 +100,8 @@ export default function Home() {
         if (chatResponse.ok) {
           const chatData = await chatResponse.json();
           console.log("gelen yanıt:", chatData);
-          setChatResponse(`Sohbet yanıtı: ${chatData.answer}`);
+          setMessage("");
+          setChatResponse(`Sohbet yanıtı: <br /> ${chatData.data.answer}`);
         } else {
           const chatError = await chatResponse.json();
           setChatResponse(`Sohbet hatası: ${chatError.error}`);
@@ -104,7 +140,12 @@ export default function Home() {
       </form>
       {isLoading && <p className="mt-4 text-gray-500">Lütfen bekleyin...</p>}
       {message && <p className="mt-4 text-red-500">{message}</p>}
-      {chatResponse && <p className="mt-4 text-green-500">{chatResponse}</p>}
+      {chatResponse && (
+        <p
+          className="mt-4 text-green-500"
+          dangerouslySetInnerHTML={{ __html: chatResponse }}
+        />
+      )}
     </div>
   );
 }
