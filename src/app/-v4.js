@@ -15,35 +15,42 @@ export default function ArticleParser() {
   const prompts = {
     author: {
       prompt:
-        "Başka hiçbir açıklama yapmadan makaleye ait istediğim bilgileri ver. Makalenin yazar bilgilerini düz metin formatında döndür.",
+        "Makalenin yazar bilgilerini JSON formatında döndür. JSON yapısı şu şekilde olmalı: { 'author': 'Bilgiler', }",
       key: "author",
     },
     abstract: {
-      prompt: "Makalenin özetini düz metin formatında döndür.",
+      prompt:
+        "Makalenin özetini JSON formatında döndür. JSON yapısı şu şekilde olmalı: { 'abstract': 'Bilgiler', }",
       key: "abstract",
     },
     keywords: {
-      prompt: "Makalenin anahtar kelimelerini düz metin formatında döndür.",
+      prompt:
+        "Makalenin anahtar kelimelerini JSON formatında döndür. JSON yapısı şu şekilde olmalı: { 'keywords': 'Bilgiler', }",
       key: "keywords",
     },
     introduction: {
-      prompt: "Makalenin giriş kısmını düz metin formatında döndür.",
+      prompt:
+        "Makalenin giriş kısmını JSON formatında döndür. JSON yapısı şu şekilde olmalı: { 'introduction': 'Bilgiler', }",
       key: "introduction",
     },
     method: {
-      prompt: "Makalenin metod kısmını düz metin formatında döndür.",
+      prompt:
+        "Makalenin metod kısmını JSON formatında döndür. JSON yapısı şu şekilde olmalı: { 'method': 'Bilgiler', }",
       key: "method",
     },
     discussion: {
-      prompt: "Makalenin tartışma kısmını düz metin formatında döndür.",
+      prompt:
+        "Makalenin tartışma kısmını JSON formatında döndür. JSON yapısı şu şekilde olmalı: { 'discussion': 'Bilgiler', }",
       key: "discussion",
     },
     results: {
-      prompt: "Makalenin sonuçlar kısmını düz metin formatında döndür.",
+      prompt:
+        "Makalenin sonuçlar kısmını JSON formatında döndür. JSON yapısı şu şekilde olmalı: { 'results': 'Bilgiler', }",
       key: "results",
     },
     references: {
-      prompt: "Makalenin kaynakça kısmını düz metin formatında döndür.",
+      prompt:
+        "Makalenin kaynakça kısmını JSON formatında döndür. JSON yapısı şu şekilde olmalı: { 'references': 'Bilgiler', }",
       key: "references",
     },
   };
@@ -78,13 +85,22 @@ export default function ArticleParser() {
       const chatData = await response.json();
       console.log("Chat Data:", chatData); // Yanıtı kontrol et
 
-      // Düz metin formatında yanıtı almak için
-      const plainTextResponse = chatData?.data?.answer || "";
+      // Yanıtı kontrol et ve JSON çözümle
+      const cleanedAnswer =
+        chatData?.data?.answer
+          ?.replace(/```json\s*\n/, "")
+          .replace(/\n```/, "") || "";
 
-      return (
-        plainTextResponse ||
-        `${key.charAt(0).toUpperCase() + key.slice(1)} bilgisi mevcut değil.`
-      );
+      try {
+        const jsonResponse = JSON.parse(cleanedAnswer);
+        return (
+          jsonResponse[key] ||
+          `${key.charAt(0).toUpperCase() + key.slice(1)} bilgisi mevcut değil.`
+        );
+      } catch (error) {
+        console.error("JSON Çözümleme Hatası:", error);
+        throw new Error("Yanıtı işleme hatası: Geçersiz JSON formatı.");
+      }
     } catch (error) {
       console.error("Hata:", error.message);
       throw error; // Hatanın üst katmana iletilmesi
@@ -218,7 +234,7 @@ export default function ArticleParser() {
             content={chatResponse.keywords}
           />
           <CollapseSection title="Giriş" content={chatResponse.introduction} />
-          <CollapseSection title="Yöntem" content={chatResponse.method} />
+          <CollapseSection title="Metot" content={chatResponse.method} />
           <CollapseSection title="Tartışma" content={chatResponse.discussion} />
           <CollapseSection title="Sonuçlar" content={chatResponse.results} />
           <CollapseSection title="Kaynakça" content={chatResponse.references} />
@@ -227,7 +243,6 @@ export default function ArticleParser() {
     </div>
   );
 }
-
 function CollapseSection({ title, content }) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -237,17 +252,14 @@ function CollapseSection({ title, content }) {
         onClick={() => setIsOpen(!isOpen)}
         className="w-full flex justify-between items-center py-3 text-gray-700 font-semibold focus:outline-none"
       >
-        <span className="flex items-center">
-          {!content ? (
-            <span className="animate-spin mr-2">⏳</span>
-          ) : (
-            <span className="text-green-500 mr-2">✅</span>
-          )}
-          {title}
-        </span>
+        {title}
         <span>{isOpen ? "-" : "+"}</span>
       </button>
-      {isOpen && <div className="p-4 bg-gray-50 text-gray-800">{content}</div>}
+      {isOpen && (
+        <div className="p-4 bg-gray-50 text-gray-600">
+          {content ? <span>{content}</span> : "Veri mevcut değil."}
+        </div>
+      )}
     </div>
   );
 }
