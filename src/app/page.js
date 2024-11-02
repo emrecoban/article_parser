@@ -63,7 +63,7 @@ export default function ArticleParser() {
             model: "gpt-4o-mini",
             //model: "gemini-1.5-flash",
             page: false,
-            ocap: 1024,
+            ocap: 4096,
             lang: "Turkish",
           }),
         }
