@@ -61,7 +61,8 @@ export default function ArticleParser() {
           body: JSON.stringify({
             prompt,
             model: "gpt-4o-mini",
-            page: true,
+            //model: "gemini-1.5-flash",
+            page: false,
             ocap: 1024,
             lang: "Turkish",
           }),
@@ -124,9 +125,11 @@ export default function ArticleParser() {
         setMessage(`Dosya başarıyla yüklendi. Chat Kodu: ${docId}`);
 
         let isDocumentAnalyzed = false;
+        let retryCount = 0;
+        let delay = 3000; // Başlangıç bekleme süresi: 2 saniye
 
         while (!isDocumentAnalyzed) {
-          await new Promise((resolve) => setTimeout(resolve, 1500));
+          await new Promise((resolve) => setTimeout(resolve, delay));
 
           const checkResponse = await fetch(
             `https://api.docanalyzer.ai/api/v1/doc/${docId}`,
@@ -145,10 +148,26 @@ export default function ArticleParser() {
               isDocumentAnalyzed = true;
               setIsAnalyzed(true);
             } else {
-              setMessage("Doküman henüz analiz edilmedi, lütfen bekleyin...");
+              setMessage("Doküman analiz ediliyor, lütfen bekleyin...");
             }
           } else {
-            setMessage("Doküman kontrol edilirken bir hata oluştu.");
+            console.error(
+              "Analiz kontrolünde hata oluştu:",
+              checkResponse.statusText
+            );
+            if (checkResponse.status === 401 || checkResponse.status === 429) {
+              // Eğer 'Unauthorized' veya 'Too Many Requests' hatası alırsak bekleme süresini artır
+              delay *= 2;
+            } else {
+              // Başka bir hata durumunda döngüyü sonlandır
+              setMessage("Doküman kontrol edilirken bir hata oluştu.");
+              break;
+            }
+          }
+
+          // Belirli sayıda denemeden sonra döngüyü durdur
+          if (++retryCount >= 10) {
+            setMessage("Analiz işlemi çok uzun sürdü. Lütfen tekrar deneyin.");
             break;
           }
         }
@@ -204,7 +223,7 @@ export default function ArticleParser() {
         </button>
       </form>
       {isLoading && <p className="mt-4 text-gray-500">Lütfen bekleyin...</p>}
-      {message && <p className="mt-4 text-red-500">{message}</p>}
+      {message && <p className="mt-4 text-amber-600">{message}</p>}
 
       {isAnalyzed && chatResponse && (
         <div className="w-full max-w-2xl bg-white rounded-lg shadow p-6 mt-8">
