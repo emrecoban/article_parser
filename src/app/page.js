@@ -15,11 +15,12 @@ export default function ArticleParser() {
   const prompts = {
     author: {
       prompt:
-        "Başka hiçbir açıklama yapmadan makaleye ait istediğim bilgileri ver. Makalenin yazar bilgilerini düz metin formatında döndür.",
+        "Başka hiçbir açıklama yapmadan makaleye ait istediğim bilgileri ver.Eğer istediğim bilgiyi bulamazsan verinin bulunamadığına dair bilgi ver. Makalenin yazar bilgilerini düz metin formatında döndür.",
       key: "author",
     },
     abstract: {
-      prompt: "Makalenin özetini düz metin formatında döndür.",
+      prompt:
+        "Makalenin özetini düz metin formatında döndür. Hiçbir değişiklik yapma.",
       key: "abstract",
     },
     keywords: {
@@ -27,7 +28,8 @@ export default function ArticleParser() {
       key: "keywords",
     },
     introduction: {
-      prompt: "Makalenin giriş kısmını düz metin formatında döndür.",
+      prompt:
+        "Makalenin giriş kısmını düz metin formatında döndür. Resim, tablo gibi bölümleri atla ve hiçbir değişiklik yapmadan tüm metni ver.",
       key: "introduction",
     },
     method: {
@@ -60,11 +62,11 @@ export default function ArticleParser() {
           },
           body: JSON.stringify({
             prompt,
-            model: "gpt-4o-mini",
+            model: "gpt-4o:byok",
             //model: "gemini-1.5-flash",
             page: false,
-            ocap: 4096,
-            lang: "Turkish",
+            ocap: 16384,
+            //lang: "Turkish",
           }),
         }
       );
